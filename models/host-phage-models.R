@@ -1,5 +1,8 @@
 require(deSolve)
 require(rootSolve)
+require(ggplot2)
+require(dplyr)
+require(tidyr)
 
 HPmod <- function(t, x, parms){
   with(as.list(c(parms, x)), {
@@ -14,10 +17,78 @@ HPmod <- function(t, x, parms){
 
 times <- seq(0, 1000, by = .1)
 x0 <- c(N = 10e4, I = 0, V = 1)
-parms <- c(eta = 1, r = 0.16, K = 2.2e7, phi = 10e-9, beta = 50, omega = 0.05)
+parms <- c(eta = .01, r = 0.5, K = 10^9, phi = 10e-9, beta = 50, omega = 0.05)
 
 out <- lsoda(x0, times, HPmod, parms)
 plot(out)
 plot(out[,"N"], out[,"V"], type = 'l', ylab = "V", xlab = "N", main = "Phase Plane")
 
 stode(y = (tail(out, n = 1)[,-1]), func = HPmod, parms = parms, pos = T)
+
+bifurc <- list()
+eta.vec <- seq(1e-8, 1e6, length.out = 30)
+bifurc <- matrix(nrow = length(eta.vec), ncol = length(x0))
+for(eta in 1:length(eta.vec)){
+  parms <- c(eta = eta.vec[eta], r = 0.16, K = 2.2e7, phi = 10e-9, beta = 50, omega = 0.05)
+  out <- lsoda(x0, times, HPmod, parms)
+  #bifurc[[paste("eta_",as.character(eta),"_dyn",sep = "")]] <- out
+  ss <- stode(y = (tail(out, n = 1)[,-1]), func = HPmod, parms = parms, pos = T)
+  #bifurc[[paste("eta_",as.character(eta),"_ss",sep = "")]] <- ss
+  if(attributes(x = ss)$steady){
+    bifurc[eta,] <- as.vector(ss$y)
+  } else bifurc[eta,] <- rep(NA, length(x0))
+}
+bifurc <- cbind.data.frame(eta.vec, bifurc)
+colnames(bifurc) <- c("eta", "N", "I", "V")
+bifurc <- gather(bifurc, -eta, key = "Variable", value = "Density")
+
+ggplot(bifurc, aes(x = eta, y = Density, color = Variable)) + 
+  geom_line() + 
+  scale_x_log10() + 
+  scale_y_log10() +
+  theme_light()
+
+
+HPcrypticmod <- function(t, x, parms){
+  with(as.list(c(parms, x)), {
+    
+    dN <- r*N*(1-(N+I+Nr)/K) - phi*N*V - omega*N
+    dNr <- rr*Nr*(1-(N+I+Nr)/K) - omega*Nr
+    dI <- phi*N*N - eta*I - omega*I
+    dV <- beta*eta*I - phi*N*V - omega*V
+    res <- c(dN, dNr, dI, dV)
+    return(list(res))
+  })
+}
+
+times <- seq(0, 1000, by = .1)
+x0 <- c(N = 10e4, Nr = 1, I = 0, V = 1)
+parms <- c(eta = .01, r = 0.5, rr = 0.1, K = 10^7, phi = 10e-9, beta = 50, omega = 0.05)
+out <- lsoda(x0, times, HPcrypticmod, parms)
+plot(out)
+plot(times, out[,"N"] + out[,"Nr"], type = 'l')
+plot(out[,"N"], out[,"Nr"], type = 'l', ylab = "Nr", xlab = "N", main = "Phase Plane")
+
+stode(y = (tail(out, n = 1)[,-1]), func = HPcrypticmod, parms = parms, pos = T)
+
+rr.vec <- seq(0.001, 1, length.out = 30)
+bifurc <- matrix(nrow = length(rr.vec), ncol = length(x0))
+for(rr in 1:length(rr.vec)){
+  parms <- c(eta = .01, r = 0.5, rr = rr.vec[rr], K = 10^7, phi = 10e-9, beta = 50, omega = 0.05)
+  out <- lsoda(x0, times, HPcrypticmod, parms)
+  #bifurc[[paste("eta_",as.character(eta),"_dyn",sep = "")]] <- out
+  ss <- stode(y = (tail(out, n = 1)[,-1]), func = HPcrypticmod, parms = parms, pos = T)
+  #bifurc[[paste("eta_",as.character(eta),"_ss",sep = "")]] <- ss
+  if(attributes(x = ss)$steady){
+    bifurc[rr,] <- as.vector(ss$y)
+  } else bifurc[rr,] <- rep(NA, length(x0))
+}
+bifurc <- cbind.data.frame(rr.vec, bifurc)
+colnames(bifurc) <- c("rr", "N", "Nr", "I", "V")
+bifurc <- gather(bifurc, -rr, key = "Variable", value = "Density")
+
+ggplot(bifurc, aes(x = rr, y = Density, color = Variable)) + 
+  geom_line() + 
+  theme_light() +
+  xlab("Resistant Mutant (Nr) Growth Rate")
+
