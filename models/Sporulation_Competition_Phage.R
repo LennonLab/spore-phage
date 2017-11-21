@@ -81,7 +81,7 @@ n = 4
 phi = 1e-7 # adsorption rate
 eta = 0.1 # latency
 beta = 200 # burst size
-mV = 0.005 # phage mortality
+mV = 0.0005 # phage mortality
 
 #Define a vector of time values over which to simulate
 times=seq(from=0,to=10000,by=1)
@@ -93,7 +93,7 @@ DormPhage_output1=ode(c(A1=1e4,D1=1,A2=1e4,D2=0,R=2,V=1,I1=0,I2=0),times,DormPha
                  method="lsoda")
 plot(DormPhage_output1)
 
-DormPhage_output2=ode(c(A1=1e4,D1=1,A2=1e4,D2=0,R=2,V=0,I1=0,I2=0),times,DormPhage,
+DormPhage_output2=ode(c(A1=1e4,D1=1,A2=1e4,D2=0,R=2,V=1,I1=0,I2=0),times,DormPhage,
                  c(e,cmax,h,rad1,rad2,rda1,rda2,w,K1,K2,mA,mD,mV,Rmax,phi,eta,beta,n=500),
                  method="lsoda")
 plot(DormPhage_output2)
@@ -119,8 +119,13 @@ for(i in 1:30){
 Frequency1=array(NA,dim=c(30))
 Frequency2=array(NA,dim=c(30))
 for(i in 1:30){
-  Frequency1[i]=mean((DormPhage_output_bifurcation[9000:1000,2,i]+DormPhage_output_bifurcation[9000:1000,3,i])/(DormPhage_output_bifurcation[9000:1000,2,i]+DormPhage_output_bifurcation[9000:1000,3,i]+DormPhage_output_bifurcation[9000:1000,4,i]+DormPhage_output_bifurcation[9000:1000,5,i]))
-  Frequency2[i]=mean((DormPhage_output_bifurcation[9000:1000,4,i]+DormPhage_output_bifurcation[9000:1000,5,i])/(DormPhage_output_bifurcation[9000:1000,2,i]+DormPhage_output_bifurcation[9000:1000,3,i]+DormPhage_output_bifurcation[9000:1000,4,i]+DormPhage_output_bifurcation[9000:1000,5,i]))
+  Frequency1[i]=mean((DormPhage_output_bifurcation[9000:10000,2,i]+DormPhage_output_bifurcation[9000:10000,3,i])/(DormPhage_output_bifurcation[9000:10000,2,i]+DormPhage_output_bifurcation[9000:10000,3,i]+DormPhage_output_bifurcation[9000:10000,4,i]+DormPhage_output_bifurcation[9000:10000,5,i]))
+  Frequency2[i]=mean((DormPhage_output_bifurcation[9000:10000,4,i]+DormPhage_output_bifurcation[9000:10000,5,i])/(DormPhage_output_bifurcation[9000:10000,2,i]+DormPhage_output_bifurcation[9000:10000,3,i]+DormPhage_output_bifurcation[9000:10000,4,i]+DormPhage_output_bifurcation[9000:10000,5,i]))
+}
+
+phage=array(NA,dim=c(30))
+for(i in 1:30){
+  phage[i]=mean((DormPhage_output_bifurcation[9000:10000,7,i]))
 }
 
 #Plot the n parameter vs strain frequency
