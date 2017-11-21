@@ -7,7 +7,7 @@ library(deSolve)
 #of time, a vector of state variables (y), and parameters
 Dorm = function(t,y,params){
   #Tell R what the 5 state variables are.
-  A1 = y[1]; D1 = y[2]; A2 = y[3]; D2 = y[4]; R = y[5]
+  A1 = y[1]; D1 = y[2]; A2 = y[3]; D2 = y[4]; R = y[5];
   with(
     as.list(params),
 {
@@ -97,14 +97,14 @@ times=seq(from=0,to=10000,by=1)
 
 
 #Simulate the model. These simulations took about 6 minutes on my computer
-Dorm_output1=rk(c(A1=1,D1=1,A2=1,D2=0,R=2),times,Dorm,
+Dorm_output1=ode(c(A1=1,D1=1,A2=1,D2=0,R=2),times,Dorm,
                 c(e,cmax,h,rad1,rad2,rda1,rda2,w,K1,K2,mA,mD,Rmax,n=2),
-                method="rk45dp7")
+                method="lsoda")
 plot(Dorm_output1)
 
-Dorm_output2=rk(c(A1=1,D1=1,A2=1,D2=0,R=2),times,Dorm,
+Dorm_output2=ode(c(A1=1,D1=1,A2=1,D2=0,R=2),times,Dorm,
                 c(e,cmax,h,rad1,rad2,rda1,rda2,w,K1,K2,mA,mD,Rmax,n=500),
-                method="rk45dp7")
+                method="lsoda")
 plot(Dorm_output2)
 
 #These two plots above show that the non-sporulating strain wins competition when
@@ -118,9 +118,9 @@ Dorm_output_bifurcation=array(NA,dim=c(length(times),6,30))
 
 #Populate each layer of the array with the results of a single simulation
 for(i in 1:30){
-  Dorm_output_bifurcation[,,i]=rk(c(A1=1,D1=1,A2=1,D2=0,R=2),times,Dorm,
+  Dorm_output_bifurcation[,,i]=ode(c(A1=1,D1=1,A2=1,D2=0,R=2),times,Dorm,
                                   c(e,cmax,h,rad1,rad2,rda1,rda2,w,K1,K2,mA,mD,Rmax,n=2*i),
-                                  method="rk45dp7")
+                                  method="lsoda")
 }
 
 #Calculate the frequency of each genotype averaged over the last 1000 time units (10%) 
@@ -139,12 +139,14 @@ points(2*seq(1,30,1),Frequency2,type="l",col="red")
 legend(40,.5,col=c("blue","red"),lty=1,legend=c("Sporulator","Non-sporulator"))
 
 
-#Save plot as a jpeg
-getwd()
-setwd("/gpfs/home/j/a/jawalsma/Karst/Desktop")
-jpeg('Sporulation_Competition.jpg')
-plot(2*seq(1,30,1),Frequency1,type="l",col="blue",xlab="Volatility parameter: n",ylab="Strain frequency",ylim=c(0,1))
-points(2*seq(1,30,1),Frequency2,type="l",col="red")
-legend(40,.5,col=c("blue","red"),lty=1,legend=c("Sporulator","Non-sporulator"))
+#Save plot as a pdf
+pdf('figures/Sporulation_Competition.pdf', width = 6, height = 6, bg = "white")
+plot(2*seq(1,30,1), Frequency1, type="l", col="blue", lwd = 2,
+     xlab="Volatility parameter: n",
+     ylab="Strain frequency",
+     ylim=c(0,1))
+points(2*seq(1,30,1), Frequency2, type="l", col="red", lwd = 2)
+legend(35,.5, col=c("blue","red"), lty=1, lwd = c(2,2),
+       legend=c("Sporulator","Non-sporulator"), bty = "n")
 dev.off()
 
