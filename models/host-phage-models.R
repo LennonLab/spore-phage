@@ -8,7 +8,7 @@ HPmod <- function(t, x, parms){
   with(as.list(c(parms, x)), {
     
     dN <- r*N*(1-(N+I)/K) - phi*N*V - omega*N
-    dI <- phi*N*N - eta*I - omega*I
+    dI <- phi*N*V - eta*I - omega*I
     dV <- beta*eta*I - phi*N*V - omega*V
     res <- c(dN, dI, dV)
     return(list(res))
