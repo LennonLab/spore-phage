@@ -3,6 +3,9 @@ rm(list=ls())
 #Necessary libraries
 library(deSolve)
 
+#function for determining y-axis upper limit when plotting abundance
+roundUp <- function(x) 10^ceiling(log10(x))
+
 #Define dormancy and competition model. The differential equation is a function
 #of time, a vector of state variables (y), and parameters
 DormPhage = function(t,y,params){
@@ -145,4 +148,94 @@ points(2*seq(1,30,1), Frequency2, type="l", col="red", lwd = 2)
 legend(35,.5, col=c("blue","red"), lty=1, lwd = c(2,2),
        legend=c("Sporulator","Non-sporulator"), bty = "n")
 dev.off()
+
+
+#####
+#bifurcation of phage params
+# Phage parameters
+phi = 1e-7 # adsorption rate
+eta = 0.1 # latency
+beta = 200 # burst size
+mV = 0.0005 # phage mortality
+
+# bifurcate over values stored in X.bif vector which is n.bif long
+
+# #Burst size
+# param.bif <- "burst_size"
+# x.bif <- seq (0,400, by=40)
+# x.bif[1]<-10
+
+# #adsorption rate
+# param.bif <- "adsorption_rate"
+# x.bif <- 10^-(c(1:10))
+# ### requires adding log="x" to both plots below
+
+# #latency
+# param.bif <- "latency"
+# x.bif <- seq (0,1, by=0.1)
+
+#phage mortality
+param.bif <- "phage_mortality"
+x.bif <- 10^-(c(1:10))
+### requires adding log="x" to both plots below
+
+
+n.bif <- length(x.bif)
+#Create array to hold results
+DormPhage_output_bifurcation=array(NA,dim=c(length(times),9,n.bif))
+
+#Populate each layer of the array with the results of a single simulation
+    ##make sure to assign x.bif[i] to parameter of interest##
+for(i in 1:n.bif){
+  DormPhage_output_bifurcation[,,i]=ode(c(A1=1e4,D1=1,A2=1e4,D2=0,R=2,V=1,I1=0,I2=0),times,DormPhage,
+                                        c(e,cmax,h,rad1,rad2,rda1,rda2,w,K1,K2,mA,mD,mV= x.bif[i],Rmax,phi,eta,beta,n),
+                                        method="lsoda")
+}
+
+#Calculate the frequency of each genotype averaged over the last 1000 time units (10%) 
+#for a given simulation
+Frequency1=array(NA,dim=c(n.bif))
+Frequency2=array(NA,dim=c(n.bif))
+Abundance1A=array(NA,dim=c(n.bif)) #active sporulators
+Abundance1D=array(NA,dim=c(n.bif)) #dormant sporulators
+Abundance1I=array(NA,dim=c(n.bif)) #infected sporulators
+Abundance2A=array(NA,dim=c(n.bif)) #active non-sporulators
+Abundance2I=array(NA,dim=c(n.bif)) #infected non-sporulators
+phage=array(NA,dim=c(n.bif))
+
+for(i in 1:n.bif){
+  Frequency1[i]=mean((DormPhage_output_bifurcation[9000:10000,2,i]+DormPhage_output_bifurcation[9000:10000,3,i])/(DormPhage_output_bifurcation[9000:10000,2,i]+DormPhage_output_bifurcation[9000:10000,3,i]+DormPhage_output_bifurcation[9000:10000,4,i]+DormPhage_output_bifurcation[9000:10000,5,i]))
+  Frequency2[i]=mean((DormPhage_output_bifurcation[9000:10000,4,i]+DormPhage_output_bifurcation[9000:10000,5,i])/(DormPhage_output_bifurcation[9000:10000,2,i]+DormPhage_output_bifurcation[9000:10000,3,i]+DormPhage_output_bifurcation[9000:10000,4,i]+DormPhage_output_bifurcation[9000:10000,5,i]))
+  Abundance1A[i]=mean ((DormPhage_output_bifurcation[9000:10000,2,i]))
+  Abundance1D[i]=mean ((DormPhage_output_bifurcation[9000:10000,3,i]))
+  Abundance1I[i]=mean ((DormPhage_output_bifurcation[9000:10000,8,i]))
+  Abundance2A[i]=mean ((DormPhage_output_bifurcation[9000:10000,4,i]))
+  Abundance2I[i]=mean ((DormPhage_output_bifurcation[9000:10000,9,i]))
+  phage[i]=mean((DormPhage_output_bifurcation[9000:10000,7,i]))
+}
+
+
+
+#Plot the parameter vs strain frequency
+pdf (paste ("figures/",param.bif,"_bifurcation.pdf", sep=""), paper = "US")
+par(mfrow=c(2,1))
+plot(x.bif,Frequency1,type="l",col="blue",xlab=param.bif,ylab="Strain frequency",ylim=c(0,1))
+points(x.bif,Frequency2,type="l",col="red")
+legend(x.bif[ceiling(n.bif/2)],0.7,col=c("blue","red", "green", "black", "black", "black"),lty=c(1,1,1,1,3,5),legend=c("Sporulator","Non-sporulator", "phage", "active","spore", "infected"), ncol=2)
+# legend(x.bif[n.bif-2],.5,col=c("blue","red"),lty=1,legend=c("Sporulator","Non-sporulator"))
+
+#Plot the parameter vs abundances
+#determine upper limit to contain all plottes data
+ymax <- roundUp(max (c(Abundance1A,Abundance1D,Abundance1I, Abundance2A, Abundance2I, phage), na.rm =T))
+
+plot(x.bif,log10(Abundance1A),type="l",col="blue", ylim = c(0,log10(ymax)), xlab=param.bif,ylab="abundnce(log)")
+points(x.bif,log10(Abundance1D),type="l",col="blue", lty=3)
+points(x.bif,log10(Abundance1I),type="l",col="blue", lty=5)
+points(x.bif,log10(Abundance2A),type="l",col="red", lty=1)
+points(x.bif,log10(Abundance2I),type="l",col="red", lty=5)
+points(x.bif,log10(phage),type="l",col="green", lty=1)
+# legend(x.bif[n.bif*.7],log10(ymax)*.7,col=c("blue","red", "green", "black", "black", "black"),lty=c(1,1,1,1,3,5),legend=c("Sporulator","Non-sporulator", "phage", "active","spore", "infected"), ncol=2)
+
+dev.off()
+#####
 

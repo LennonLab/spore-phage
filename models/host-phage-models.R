@@ -54,7 +54,7 @@ HPcrypticmod <- function(t, x, parms){
     
     dN <- r*N*(1-(N+I+Nr)/K) - phi*N*V - omega*N
     dNr <- rr*Nr*(1-(N+I+Nr)/K) - omega*Nr
-    dI <- phi*N*N - eta*I - omega*I
+    dI <- phi*N*V - eta*I - omega*I
     dV <- beta*eta*I - phi*N*V - omega*V
     res <- c(dN, dNr, dI, dV)
     return(list(res))
